@@ -4,6 +4,18 @@
 
 Working name is a placeholder — rename at will (Craft Shelf, Idea Basket, Make Today…).
 
+> **Status (updated 2026-08-29):** Phase 0 and most of Phase 1 are built — the app
+> lives in [`idea-jar/`](idea-jar/) on this branch: vocab + projects as JSON,
+> 9 sample projects with placeholder images, filterable gallery, detail pages,
+> data validation in the build. Remaining before Phase 2:
+> 1. Lola creates the **private** GitHub repo `idea-jar` and grants Claude access
+>    (claude.ai → Settings → Connectors → GitHub, or the org's Claude GitHub settings);
+>    then the app moves there and real pin images become safe to commit.
+> 2. Lola imports that repo at **vercel.com/new** (the Vercel connector here can
+>    manage existing projects but isn't permitted to create one); then Claude
+>    enables Vercel Authentication so the site is private.
+> 3. Pinterest data export: requested, waiting for the email.
+
 ---
 
 ## 1. The vision
