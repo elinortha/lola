@@ -1,0 +1,801 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mixing Bench</title>
+<meta name="description" content="Mix recipes for your palette, from the paints you actually own.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #f5f5f2;
+    --surface: #ffffff;
+    --surface-2: #efefeb;
+    --ink: #212220;
+    --muted: #6f706a;
+    --line: #e0e0d8;
+    --accent: #3140a6;
+    --accent-ink: #ffffff;
+    --accent-wash: #edeffa;
+    --good: #2e7d4f;
+    --warn: #96690a;
+    --far: #b3403a;
+    --shadow: 0 1px 3px rgba(30, 32, 60, 0.08);
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #151619;
+      --surface: #1e2024;
+      --surface-2: #26282d;
+      --ink: #ebe9e2;
+      --muted: #9a9a94;
+      --line: #2d2f33;
+      --accent: #93a0ff;
+      --accent-ink: #14162a;
+      --accent-wash: #262b45;
+      --good: #6fc492;
+      --warn: #e3b341;
+      --far: #e88e85;
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #151619;
+    --surface: #1e2024;
+    --surface-2: #26282d;
+    --ink: #ebe9e2;
+    --muted: #9a9a94;
+    --line: #2d2f33;
+    --accent: #93a0ff;
+    --accent-ink: #14162a;
+    --accent-wash: #262b45;
+    --good: #6fc492;
+    --warn: #e3b341;
+    --far: #e88e85;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    padding: 0 20px 60px;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  h1, h2 { font-family: "Familjen Grotesk", "Arial Narrow", sans-serif; text-wrap: balance; margin: 0; }
+  .mono { font-family: "Spline Sans Mono", ui-monospace, monospace; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  input, select { font: inherit; color: var(--ink); }
+  :is(button, input, select, summary, a):focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* ---------- header ---------- */
+  header { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 24px 48px; padding: 40px 0 28px; }
+  .masthead h1 { font-size: 34px; font-weight: 700; letter-spacing: -0.01em; }
+  .masthead p { margin: 6px 0 0; color: var(--muted); max-width: 42ch; }
+  .proof { min-width: 250px; }
+  .proof-label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .proof canvas { display: block; width: 250px; height: 16px; border-radius: 3px; }
+  .proof .row { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
+  .proof .row span { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .banner {
+    display: none; background: var(--accent-wash); border: 1px solid var(--line);
+    border-radius: 8px; padding: 10px 14px; margin-bottom: 18px;
+  }
+  .banner.show { display: block; }
+
+  /* ---------- stations ---------- */
+  section.station { border-top: 1px solid var(--line); padding: 26px 0 34px; }
+  .station-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; margin-bottom: 16px; }
+  .station-no { font-family: "Spline Sans Mono", ui-monospace, monospace; font-size: 12px; letter-spacing: 0.14em; color: var(--accent); }
+  .station-head h2 { font-size: 21px; font-weight: 600; }
+  .station-head .hint { color: var(--muted); font-size: 13.5px; }
+
+  .chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .chip {
+    border: 1px solid var(--line); background: var(--surface); border-radius: 999px;
+    padding: 3px 12px; font-size: 13px; color: var(--muted);
+  }
+  .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+
+  .shelf { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 8px; }
+  .paint {
+    display: flex; align-items: center; gap: 10px; background: var(--surface);
+    border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; box-shadow: var(--shadow);
+  }
+  .paint .swatch {
+    width: 34px; height: 34px; border-radius: 7px; flex: none;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.14);
+  }
+  .paint .info { min-width: 0; flex: 1; }
+  .paint .name { font-weight: 600; font-size: 13.5px; line-height: 1.25; }
+  .paint .meta { font-size: 11.5px; color: var(--muted); display: flex; gap: 6px; align-items: baseline; }
+  .paint .pig { font-family: "Spline Sans Mono", ui-monospace, monospace; font-size: 10.5px; }
+  .paint .del {
+    border: 0; background: none; color: var(--muted); font-size: 16px; line-height: 1;
+    padding: 4px 6px; border-radius: 6px; flex: none;
+  }
+  .paint .del:hover { color: var(--far); background: var(--surface-2); }
+  .sample-note { font-size: 13px; color: var(--muted); margin: 12px 0 0; }
+  .sample-note button { border: 0; background: none; color: var(--accent); text-decoration: underline; padding: 0; }
+
+  .addbar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; align-items: center; }
+  .addbar input[type="text"], .addbar select, .palette-tools input[type="text"] {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px;
+  }
+  input[type="color"] {
+    inline-size: 44px; block-size: 36px; padding: 2px; border: 1px solid var(--line);
+    border-radius: 8px; background: var(--surface);
+  }
+  .btn {
+    background: var(--accent); color: var(--accent-ink); border: 1px solid var(--accent);
+    border-radius: 8px; padding: 7px 16px; font-weight: 600;
+  }
+  .btn-quiet { background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 7px 14px; }
+  .btn-quiet:hover, .chip:hover { border-color: var(--accent); }
+
+  details.presets { margin-top: 18px; }
+  details.presets summary { color: var(--accent); font-weight: 600; font-size: 14px; cursor: pointer; width: fit-content; }
+  .preset-tools { display: flex; align-items: center; gap: 8px; margin: 12px 0; font-size: 13.5px; color: var(--muted); }
+  .preset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); gap: 6px; }
+  .preset {
+    display: flex; align-items: center; gap: 8px; text-align: left; background: var(--surface);
+    border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px; font-size: 12.5px;
+  }
+  .preset .sw { width: 22px; height: 22px; border-radius: 5px; flex: none; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.14); }
+  .preset .pg { font-family: "Spline Sans Mono", ui-monospace, monospace; font-size: 10px; color: var(--muted); margin-left: auto; }
+  .preset.added { opacity: 0.45; }
+
+  /* ---------- palette ---------- */
+  .palette-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; }
+  .palette-tools input[type="text"] { flex: 1 1 300px; }
+  .targets { display: flex; flex-wrap: wrap; gap: 10px; }
+  .target { position: relative; width: 96px; }
+  .target .face { height: 68px; border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12); }
+  .target .hex { font-family: "Spline Sans Mono", ui-monospace, monospace; font-size: 11px; color: var(--muted); margin-top: 4px; text-align: center; }
+  .target .del {
+    position: absolute; top: 4px; right: 4px; border: 0; border-radius: 6px;
+    background: rgba(20,20,20,0.45); color: #fff; font-size: 13px; line-height: 1;
+    padding: 3px 6px;
+  }
+  .target .del:hover { background: rgba(20,20,20,0.7); }
+
+  /* ---------- recipes ---------- */
+  .mix-tools { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin-bottom: 16px; font-size: 14px; }
+  .mix-tools select { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+  .mix-note { font-size: 13px; color: var(--muted); }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(295px, 1fr)); gap: 12px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; box-shadow: var(--shadow); }
+  .seam { display: flex; height: 86px; position: relative; }
+  .seam > div { flex: 1; }
+  .seam .tag {
+    position: absolute; bottom: 6px; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+    background: rgba(20,20,20,0.5); color: #fff; border-radius: 4px; padding: 1px 6px;
+  }
+  .seam .tag.l { left: 8px; } .seam .tag.r { right: 8px; }
+  .card-body { padding: 12px 14px 14px; }
+  .verdict { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+  .verdict .word { font-weight: 600; font-size: 14px; }
+  .verdict .de { font-family: "Spline Sans Mono", ui-monospace, monospace; font-size: 11.5px; color: var(--muted); }
+  .verdict.q-good .word { color: var(--good); }
+  .verdict.q-warn .word { color: var(--warn); }
+  .verdict.q-far .word { color: var(--far); }
+  .recipe { display: flex; flex-direction: column; gap: 6px; }
+  .ing { display: flex; align-items: center; gap: 9px; font-size: 14px; }
+  .ing .dot { width: 18px; height: 18px; border-radius: 50%; flex: none; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15); }
+  .ing .parts { font-family: "Spline Sans Mono", ui-monospace, monospace; font-size: 12.5px; min-width: 68px; color: var(--muted); }
+  .alts { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 10px; }
+  .alts-label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 7px; }
+  .alt { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); padding: 3px 0; }
+  .alt .mini { width: 34px; height: 16px; border-radius: 4px; flex: none; display: flex; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12); }
+  .alt .mini div { flex: 1; }
+  .empty { color: var(--muted); background: var(--surface-2); border-radius: 10px; padding: 22px; text-align: center; }
+  .shelf-warn { font-size: 13.5px; color: var(--warn); margin-bottom: 12px; }
+
+  footer { border-top: 1px solid var(--line); margin-top: 20px; padding-top: 18px; font-size: 12.5px; color: var(--muted); }
+  footer a { color: var(--accent); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .paint, .card, .preset, .target { transition: border-color 120ms ease; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="masthead">
+      <h1>Mixing Bench</h1>
+      <p>Mix recipes for the palette you want, from the paints you actually own.</p>
+    </div>
+    <div class="proof" id="proof" hidden>
+      <div class="proof-label">Why not just average the colors?</div>
+      <div class="row"><canvas id="stripPaint" width="500" height="32"></canvas><span>paint (Mixbox)</span></div>
+      <div class="row"><canvas id="stripRgb" width="500" height="32"></canvas><span>screen math (RGB)</span></div>
+    </div>
+  </header>
+
+  <div class="banner" id="engineBanner">
+    The paint-mixing engine (mixbox.js) didn’t load, so recipes can’t be computed.
+    Check that <span class="mono">vendor/mixbox.js</span> is present, then reload.
+  </div>
+
+  <section class="station" id="stationShelf">
+    <div class="station-head">
+      <span class="station-no">01</span>
+      <h2>Paint shelf</h2>
+      <span class="hint">Every paint you own. The pigment code (like PB29) is printed on the tube.</span>
+    </div>
+    <div class="chip-row" id="mediumFilters"></div>
+    <div class="shelf" id="shelf"></div>
+    <p class="sample-note" id="sampleNote" hidden>
+      These are sample paints so you can see how the bench works —
+      <button type="button" id="clearSamples">clear them</button> and add your own.
+    </p>
+    <div class="addbar">
+      <input type="color" id="addColor" value="#8a6fb0" aria-label="Paint color">
+      <input type="text" id="addName" placeholder="Paint name" size="16">
+      <input type="text" id="addBrand" placeholder="Brand (optional)" size="12">
+      <input type="text" id="addPig" placeholder="Pigment, e.g. PB29" size="12" class="mono">
+      <select id="addMedium" aria-label="Medium">
+        <option value="acrylic">acrylic</option>
+        <option value="watercolor">watercolor</option>
+        <option value="gouache">gouache</option>
+        <option value="oil">oil</option>
+        <option value="pastel">soft pastel</option>
+      </select>
+      <button class="btn" id="addPaint">Add paint</button>
+    </div>
+    <details class="presets">
+      <summary>Quick-add common paints</summary>
+      <div class="preset-tools">
+        <label for="presetMedium">Add as</label>
+        <select id="presetMedium">
+          <option value="acrylic">acrylic</option>
+          <option value="watercolor">watercolor</option>
+          <option value="gouache">gouache</option>
+          <option value="oil">oil</option>
+          <option value="pastel">soft pastel</option>
+        </select>
+        <span>— click a paint to put it on your shelf</span>
+      </div>
+      <div class="preset-grid" id="presetGrid"></div>
+    </details>
+  </section>
+
+  <section class="station" id="stationPalette">
+    <div class="station-head">
+      <span class="station-no">02</span>
+      <h2>Target palette</h2>
+      <span class="hint">Paste a Coolors link or hex codes, or pick colors by hand.</span>
+    </div>
+    <div class="palette-tools">
+      <input type="text" id="paletteInput" placeholder="https://coolors.co/e9c46a-f4a261-…  or  #e9c46a #f4a261 …">
+      <button class="btn" id="parsePalette">Add colors</button>
+      <input type="color" id="pickTarget" value="#4a7c8c" aria-label="Pick a target color">
+      <button class="btn-quiet" id="addPicked">Add picked</button>
+      <button class="btn-quiet" id="clearPalette">Clear</button>
+    </div>
+    <div class="targets" id="targets"></div>
+  </section>
+
+  <section class="station" id="stationRecipes">
+    <div class="station-head">
+      <span class="station-no">03</span>
+      <h2>Recipes</h2>
+      <span class="hint">Best mixes from your shelf, judged by CIEDE2000 color difference.</span>
+    </div>
+    <div class="mix-tools">
+      <label for="mixMedium">Mix with</label>
+      <select id="mixMedium"></select>
+      <span class="mix-note" id="mixNote"></span>
+    </div>
+    <div class="shelf-warn" id="shelfWarn" hidden></div>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <footer>
+    Pigment mixing by <a href="https://github.com/scrtwpns/mixbox" rel="noopener">Mixbox</a>
+    (Šárka Sochorová &amp; Ondřej Jamriška, Secret Weapons) — CC&nbsp;BY-NC&nbsp;4.0, for personal,
+    non-commercial use. Color difference: CIEDE2000. Mixes are predictions — expect to fine-tune by eye,
+    and remember acrylics dry a touch darker.
+  </footer>
+</div>
+
+<script src="./vendor/mixbox.js"></script>
+<script src="./solver.js"></script>
+<script>
+(function () {
+  'use strict';
+  var S = window.PaintSolver;
+  var haveEngine = !!(window.mixbox && window.mixbox.rgbToLatent);
+  if (!haveEngine) document.getElementById('engineBanner').classList.add('show');
+
+  var MEDIA = ['acrylic', 'watercolor', 'gouache', 'oil', 'pastel'];
+  var MEDIUM_LABEL = { acrylic: 'acrylic', watercolor: 'watercolor', gouache: 'gouache', oil: 'oil', pastel: 'soft pastel' };
+  var WATER_HEX = '#fcfbf6';
+
+  // Common artist paints. Where Mixbox publishes tuned pigment RGBs
+  // (see the header of vendor/mixbox.js) those exact values are used;
+  // the rest are typical masstone approximations.
+  var PRESETS = [
+    { name: 'Titanium White', pig: 'PW6', hex: '#f5f4ef' },
+    { name: 'Zinc (Mixing) White', pig: 'PW4', hex: '#f8f7f2' },
+    { name: 'Cadmium Yellow Lemon', pig: 'PY35', hex: '#f4ea00' },
+    { name: 'Cadmium Yellow', pig: 'PY35', hex: '#feec00' },
+    { name: 'Hansa Yellow', pig: 'PY74', hex: '#fcd300' },
+    { name: 'Naples Yellow', pig: 'PBr24', hex: '#efd8a2' },
+    { name: 'Yellow Ochre', pig: 'PY43', hex: '#be8a33' },
+    { name: 'Cadmium Orange', pig: 'PO20', hex: '#ff6900' },
+    { name: 'Cadmium Red', pig: 'PR108', hex: '#ff2702' },
+    { name: 'Alizarin Crimson', pig: 'PR83', hex: '#8a1b33' },
+    { name: 'Permanent Rose', pig: 'PV19', hex: '#c22764' },
+    { name: 'Quinacridone Magenta', pig: 'PR122', hex: '#80022e' },
+    { name: 'Dioxazine Purple', pig: 'PV23', hex: '#2e1440' },
+    { name: 'Cobalt Violet', pig: 'PV14', hex: '#4e0042' },
+    { name: 'Ultramarine Blue', pig: 'PB29', hex: '#190059' },
+    { name: 'Cobalt Blue', pig: 'PB28', hex: '#002185' },
+    { name: 'Phthalo Blue (GS)', pig: 'PB15:3', hex: '#0d1b44' },
+    { name: 'Cerulean Blue', pig: 'PB35', hex: '#005e9e' },
+    { name: 'Prussian Blue', pig: 'PB27', hex: '#102a43' },
+    { name: 'Phthalo Green', pig: 'PG7', hex: '#003c32' },
+    { name: 'Viridian', pig: 'PG18', hex: '#00694e' },
+    { name: 'Permanent Green', pig: 'PG7+PY', hex: '#076d16' },
+    { name: 'Sap Green', pig: 'PG7+PY42', hex: '#6b9404' },
+    { name: 'Chromium Oxide Green', pig: 'PG17', hex: '#55742f' },
+    { name: 'Raw Sienna', pig: 'PBr7', hex: '#b27a38' },
+    { name: 'Burnt Sienna', pig: 'PBr7', hex: '#7b4800' },
+    { name: 'Raw Umber', pig: 'PBr7', hex: '#5b4e31' },
+    { name: 'Burnt Umber', pig: 'PBr7', hex: '#4a2e19' },
+    { name: "Payne's Gray", pig: 'PB29+PBk9', hex: '#40485c' },
+    { name: 'Ivory Black', pig: 'PBk9', hex: '#1d1c1a' },
+    { name: 'Mars Black', pig: 'PBk11', hex: '#232323' }
+  ];
+
+  var SAMPLE_PAINT_NAMES = ['Titanium White', 'Cadmium Yellow', 'Yellow Ochre', 'Cadmium Red',
+    'Quinacridone Magenta', 'Ultramarine Blue', 'Phthalo Blue (GS)', 'Phthalo Green',
+    'Sap Green', 'Burnt Sienna', 'Burnt Umber', 'Ivory Black'];
+  // The classic Coolors sample palette.
+  var SAMPLE_PALETTE = ['#264653', '#2a9d8f', '#e9c46a', '#f4a261', '#e76f51'];
+
+  // ---------- state & persistence ----------
+
+  var STORE_KEY = 'mixingbench.v1';
+  var state = null;
+  var dbHandle = null;
+
+  function newId() { return 'p' + Math.random().toString(36).slice(2, 9); }
+
+  function sampleState() {
+    return {
+      v: 1,
+      sample: true,
+      medium: 'acrylic',
+      filter: 'all',
+      paints: SAMPLE_PAINT_NAMES.map(function (n) {
+        var p = PRESETS.find(function (x) { return x.name === n; });
+        return { id: newId(), name: p.name, brand: '', pig: p.pig, hex: p.hex, medium: 'acrylic' };
+      }),
+      palette: SAMPLE_PALETTE.slice(),
+      updatedAt: 0
+    };
+  }
+
+  function loadLocal() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      if (raw) {
+        var s = JSON.parse(raw);
+        if (s && s.v === 1 && Array.isArray(s.paints)) return s;
+      }
+    } catch (e) { /* private mode etc. — fall through to sample */ }
+    return null;
+  }
+
+  var saveTimer = null;
+  function persist() {
+    state.updatedAt = Date.now();
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* ignore */ }
+    if (dbHandle) {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(function () {
+        dbHandle.doc('state/app').set(state).catch(function () { /* offline is fine; localStorage has it */ });
+      }, 700);
+    }
+  }
+
+  // On claude.ai the artifact db keeps the shelf across devices; elsewhere
+  // (a local checkout) window.claude doesn't exist and localStorage is it.
+  function initDb() {
+    if (!window.claude || typeof window.claude.use !== 'function') return;
+    window.claude.use('db').then(function (db) {
+      if (!db) return;
+      dbHandle = db;
+      return db.doc('state/app').get().then(function (snap) {
+        if (snap.exists) {
+          var remote = snap.data();
+          if (remote && remote.v === 1 && (remote.updatedAt || 0) > (state.updatedAt || 0)) {
+            state = remote;
+            renderAll();
+          }
+        }
+      });
+    }).catch(function () { /* db unavailable — localStorage only */ });
+  }
+
+  // ---------- shared render helpers ----------
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text !== undefined) n.textContent = text;
+    return n;
+  }
+
+  function textLum(hex) {
+    var rgb = S.hexToRgb(hex);
+    return (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255;
+  }
+
+  // ---------- station 01: shelf ----------
+
+  function mediaOnShelf() {
+    var counts = {};
+    state.paints.forEach(function (p) { counts[p.medium] = (counts[p.medium] || 0) + 1; });
+    return counts;
+  }
+
+  function renderShelf() {
+    var counts = mediaOnShelf();
+    var filters = document.getElementById('mediumFilters');
+    filters.replaceChildren();
+    var options = [['all', 'all · ' + state.paints.length]].concat(
+      MEDIA.filter(function (m) { return counts[m]; })
+        .map(function (m) { return [m, MEDIUM_LABEL[m] + ' · ' + counts[m]]; }));
+    options.forEach(function (opt) {
+      var b = el('button', 'chip', opt[1]);
+      b.type = 'button';
+      b.setAttribute('aria-pressed', String(state.filter === opt[0]));
+      b.addEventListener('click', function () { state.filter = opt[0]; persist(); renderShelf(); });
+      filters.appendChild(b);
+    });
+
+    var shelf = document.getElementById('shelf');
+    shelf.replaceChildren();
+    var visible = state.paints.filter(function (p) { return state.filter === 'all' || p.medium === state.filter; });
+    if (!visible.length) {
+      var empty = el('div', 'empty', 'No paints yet — add one below, or open “Quick-add common paints”.');
+      empty.style.gridColumn = '1 / -1';
+      shelf.appendChild(empty);
+    }
+    visible.forEach(function (p) {
+      var row = el('div', 'paint');
+      var sw = el('div', 'swatch');
+      sw.style.background = p.hex;
+      var info = el('div', 'info');
+      info.appendChild(el('div', 'name', p.name));
+      var meta = el('div', 'meta');
+      meta.appendChild(el('span', '', MEDIUM_LABEL[p.medium] + (p.brand ? ' · ' + p.brand : '')));
+      if (p.pig) meta.appendChild(el('span', 'pig', p.pig));
+      info.appendChild(meta);
+      var del = el('button', 'del', '×');
+      del.type = 'button';
+      del.setAttribute('aria-label', 'Remove ' + p.name);
+      del.addEventListener('click', function () {
+        state.paints = state.paints.filter(function (x) { return x.id !== p.id; });
+        state.sample = false;
+        persist(); renderAll();
+      });
+      row.append(sw, info, del);
+      shelf.appendChild(row);
+    });
+
+    document.getElementById('sampleNote').hidden = !state.sample;
+    renderPresets();
+    renderMixTools();
+  }
+
+  function renderPresets() {
+    var grid = document.getElementById('presetGrid');
+    var medium = document.getElementById('presetMedium').value;
+    grid.replaceChildren();
+    PRESETS.forEach(function (p) {
+      var added = state.paints.some(function (x) { return x.name === p.name && x.medium === medium; });
+      var b = el('button', 'preset' + (added ? ' added' : ''));
+      b.type = 'button';
+      var sw = el('span', 'sw');
+      sw.style.background = p.hex;
+      b.append(sw, el('span', '', p.name), el('span', 'pg', p.pig));
+      b.addEventListener('click', function () {
+        if (state.paints.some(function (x) { return x.name === p.name && x.medium === medium; })) return;
+        state.paints.push({ id: newId(), name: p.name, brand: '', pig: p.pig, hex: p.hex, medium: medium });
+        state.sample = false;
+        persist(); renderAll();
+      });
+      grid.appendChild(b);
+    });
+  }
+
+  document.getElementById('presetMedium').addEventListener('change', renderPresets);
+
+  document.getElementById('addPaint').addEventListener('click', function () {
+    var hex = document.getElementById('addColor').value;
+    var name = document.getElementById('addName').value.trim() || hex;
+    state.paints.push({
+      id: newId(),
+      name: name,
+      brand: document.getElementById('addBrand').value.trim(),
+      pig: document.getElementById('addPig').value.trim().toUpperCase(),
+      hex: hex,
+      medium: document.getElementById('addMedium').value
+    });
+    state.sample = false;
+    document.getElementById('addName').value = '';
+    document.getElementById('addPig').value = '';
+    persist(); renderAll();
+  });
+
+  document.getElementById('clearSamples').addEventListener('click', function () {
+    state.paints = [];
+    state.palette = [];
+    state.sample = false;
+    persist(); renderAll();
+  });
+
+  // ---------- station 02: palette ----------
+
+  function parseHexes(text) {
+    var tokens = String(text).match(/#?[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/g) || [];
+    var out = [];
+    tokens.forEach(function (t) {
+      var h = t.replace('#', '').toLowerCase();
+      if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+      h = '#' + h;
+      if (out.indexOf(h) < 0) out.push(h);
+    });
+    return out;
+  }
+
+  function addTargets(hexes) {
+    hexes.forEach(function (h) {
+      if (state.palette.indexOf(h) < 0) state.palette.push(h);
+    });
+    persist(); renderAll();
+  }
+
+  function renderPalette() {
+    var wrap = document.getElementById('targets');
+    wrap.replaceChildren();
+    if (!state.palette.length) {
+      wrap.appendChild(el('div', 'empty', 'No target colors yet — paste a Coolors link above.'));
+      return;
+    }
+    state.palette.forEach(function (hex) {
+      var t = el('div', 'target');
+      var face = el('div', 'face');
+      face.style.background = hex;
+      var del = el('button', 'del', '×');
+      del.type = 'button';
+      del.setAttribute('aria-label', 'Remove ' + hex);
+      del.addEventListener('click', function () {
+        state.palette = state.palette.filter(function (h) { return h !== hex; });
+        persist(); renderAll();
+      });
+      t.append(face, del, el('div', 'hex', hex));
+      wrap.appendChild(t);
+    });
+  }
+
+  document.getElementById('parsePalette').addEventListener('click', function () {
+    var box = document.getElementById('paletteInput');
+    var hexes = parseHexes(box.value);
+    if (hexes.length) { box.value = ''; addTargets(hexes); }
+  });
+  document.getElementById('paletteInput').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') document.getElementById('parsePalette').click();
+  });
+  document.getElementById('addPicked').addEventListener('click', function () {
+    addTargets([document.getElementById('pickTarget').value.toLowerCase()]);
+  });
+  document.getElementById('clearPalette').addEventListener('click', function () {
+    state.palette = [];
+    persist(); renderAll();
+  });
+
+  // ---------- station 03: recipes ----------
+
+  function renderMixTools() {
+    var sel = document.getElementById('mixMedium');
+    var counts = mediaOnShelf();
+    var avail = MEDIA.filter(function (m) { return counts[m]; });
+    sel.replaceChildren();
+    avail.forEach(function (m) {
+      var o = el('option', '', MEDIUM_LABEL[m] + ' (' + counts[m] + ' paints)');
+      o.value = m;
+      sel.appendChild(o);
+    });
+    if (avail.indexOf(state.medium) < 0) state.medium = avail[0] || 'acrylic';
+    sel.value = state.medium;
+    var note = document.getElementById('mixNote');
+    note.textContent =
+      state.medium === 'watercolor' ? 'Water counts as an ingredient — more water means a lighter wash.' :
+      state.medium === 'pastel' ? 'Pastels don’t mix by ratio — recipes suggest sticks to layer and blend.' :
+      '';
+  }
+
+  document.getElementById('mixMedium').addEventListener('change', function () {
+    state.medium = this.value;
+    persist(); scheduleSolve();
+  });
+
+  function verdictFor(deltaE) {
+    if (deltaE < 1.5) return { word: 'spot on', cls: 'q-good' };
+    if (deltaE < 3) return { word: 'very close', cls: 'q-good' };
+    if (deltaE < 6) return { word: 'close', cls: 'q-warn' };
+    if (deltaE < 11) return { word: 'in the ballpark', cls: 'q-warn' };
+    return { word: 'nearest possible', cls: 'q-far' };
+  }
+
+  function partsPhrase(comp, pastel) {
+    var name = comp.paint.isWater ? 'water' : comp.paint.name;
+    if (pastel) return name;
+    if (comp.weight < 0.08) return 'a touch of ' + name;
+    var parts = comp.parts;
+    return parts + ' part' + (parts === 1 ? '' : 's') + ' ' + name;
+  }
+
+  function ingRow(comp, pastel, prefix) {
+    var row = el('div', 'ing');
+    var dot = el('span', 'dot');
+    dot.style.background = comp.paint.isWater ? WATER_HEX : comp.paint.hex;
+    var label = el('span', '', (prefix || '') + partsPhrase(comp, pastel));
+    row.append(dot, label);
+    if (!pastel && comp.paint.pig) {
+      var pig = el('span', 'parts mono', comp.paint.pig);
+      pig.style.marginLeft = 'auto';
+      row.appendChild(pig);
+    }
+    return row;
+  }
+
+  function renderRecipeCard(targetHex, recipes, pastel) {
+    var card = el('div', 'card');
+    var best = recipes[0];
+
+    var seam = el('div', 'seam');
+    var left = el('div'); left.style.background = targetHex;
+    var right = el('div'); right.style.background = best.hex;
+    seam.append(left, right, el('span', 'tag l', 'target'), el('span', 'tag r', 'your mix'));
+    card.appendChild(seam);
+
+    var body = el('div', 'card-body');
+    var v = verdictFor(best.deltaE);
+    var verdict = el('div', 'verdict ' + v.cls);
+    verdict.append(el('span', 'word', v.word), el('span', 'de', 'ΔE ' + best.deltaE.toFixed(1) + ' · ' + targetHex));
+    body.appendChild(verdict);
+
+    var recipe = el('div', 'recipe');
+    if (pastel) {
+      recipe.appendChild(ingRow(best.components[0], true, best.components.length > 1 ? 'Base layer: ' : 'Use straight: '));
+      if (best.components.length > 1) {
+        var c2 = best.components[1];
+        recipe.appendChild(ingRow(c2, true, (c2.weight < 0.35 ? 'A light pass of ' : 'An even blend of ') + ''));
+      }
+    } else {
+      best.components.forEach(function (c) { recipe.appendChild(ingRow(c, false)); });
+    }
+    body.appendChild(recipe);
+
+    var alts = recipes.slice(1).filter(function (r) { return r.deltaE < 14; });
+    if (alts.length) {
+      var altWrap = el('div', 'alts');
+      altWrap.appendChild(el('div', 'alts-label', 'Other ways to mix it'));
+      alts.forEach(function (r) {
+        var row = el('div', 'alt');
+        var mini = el('span', 'mini');
+        var ml = el('div'); ml.style.background = targetHex;
+        var mr = el('div'); mr.style.background = r.hex;
+        mini.append(ml, mr);
+        var phrase = r.components.map(function (c) { return partsPhrase(c, pastel); }).join(' · ');
+        row.append(mini, el('span', '', phrase + '  (ΔE ' + r.deltaE.toFixed(1) + ')'));
+        altWrap.appendChild(row);
+      });
+      body.appendChild(altWrap);
+    }
+
+    card.appendChild(body);
+    return card;
+  }
+
+  var solveTimer = null;
+  function scheduleSolve() {
+    clearTimeout(solveTimer);
+    solveTimer = setTimeout(solveAll, 150);
+  }
+
+  function solveAll() {
+    var cards = document.getElementById('cards');
+    var warn = document.getElementById('shelfWarn');
+    cards.replaceChildren();
+    warn.hidden = true;
+    if (!haveEngine) return;
+
+    var shelf = state.paints.filter(function (p) { return p.medium === state.medium; });
+    if (!shelf.length) {
+      cards.appendChild(el('div', 'empty', 'No ' + (MEDIUM_LABEL[state.medium] || '') + ' paints on the shelf yet.'));
+      return;
+    }
+    if (!state.palette.length) {
+      cards.appendChild(el('div', 'empty', 'Add target colors in station 02 to get recipes.'));
+      return;
+    }
+
+    var pastel = state.medium === 'pastel';
+    var components = shelf.slice();
+    if (state.medium === 'watercolor') {
+      components.push({ id: '__water', name: 'Water', hex: WATER_HEX, isWater: true });
+    }
+
+    // A shelf with nothing light can't reach light targets (except in watercolor).
+    if (state.medium !== 'watercolor') {
+      var maxL = Math.max.apply(null, shelf.map(function (p) { return S.labFromRgb(S.hexToRgb(p.hex))[0]; }));
+      var lightTargets = state.palette.some(function (h) { return S.labFromRgb(S.hexToRgb(h))[0] > maxL + 5; });
+      if (lightTargets) {
+        warn.textContent = 'Some targets are lighter than anything on your ' + MEDIUM_LABEL[state.medium] +
+          ' shelf — add a white to reach them.';
+        warn.hidden = false;
+      }
+    }
+
+    state.palette.forEach(function (hex) {
+      var recipes = S.solve(hex, components, { maxResults: 3, pastel: pastel });
+      if (recipes.length) cards.appendChild(renderRecipeCard(hex, recipes, pastel));
+    });
+  }
+
+  // ---------- header proof strip ----------
+
+  function drawProof() {
+    if (!haveEngine) return;
+    document.getElementById('proof').hidden = false;
+    var blue = [25, 0, 89], yellow = [254, 236, 0];
+    ['stripPaint', 'stripRgb'].forEach(function (id) {
+      var cv = document.getElementById(id);
+      var ctx = cv.getContext('2d');
+      for (var x = 0; x < cv.width; x++) {
+        var t = x / (cv.width - 1);
+        var rgb;
+        if (id === 'stripPaint') {
+          rgb = window.mixbox.lerp(blue, yellow, t);
+        } else {
+          rgb = [Math.round(blue[0] + (yellow[0] - blue[0]) * t),
+                 Math.round(blue[1] + (yellow[1] - blue[1]) * t),
+                 Math.round(blue[2] + (yellow[2] - blue[2]) * t)];
+        }
+        ctx.fillStyle = 'rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ')';
+        ctx.fillRect(x, 0, 1, cv.height);
+      }
+    });
+  }
+
+  // ---------- boot ----------
+
+  function renderAll() {
+    renderShelf();
+    renderPalette();
+    scheduleSolve();
+  }
+
+  state = loadLocal() || sampleState();
+  renderAll();
+  drawProof();
+  initDb();
+})();
+</script>
+</body>
+</html>
